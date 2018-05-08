@@ -10,10 +10,10 @@ dim3float delinearise(int i, int width, dim3float parentOrigin)
 
 int linearise(dim3float dim, int width, dim3float parentOrigin)
 {
-    int x = (dim.x - parentOrigin.x)/(width/2);
-    int y = (dim.y - parentOrigin.y)/(width/2);
-    int z = (dim.z - parentOrigin.z)/(width/2);
-    
+    int x = (dim.x - parentOrigin.x) / (width / 2);
+    int y = (dim.y - parentOrigin.y) / (width / 2);
+    int z = (dim.z - parentOrigin.z) / (width / 2);
+
     return (x + 2 * (y + 2 * z));
 }
 
@@ -23,8 +23,9 @@ int linearise(dim3float dim, int width, dim3float parentOrigin)
 
 Body::Body()
 {
-    dim3float COM(0, 0, 0);
-    centreOfMass = COM;
+    centreOfMass = dim3float(0, 0, 0);
+    force = dim3float(0, 0, 0);
+    velocity = dim3float(0, 0, 0);
     mass = 0;
 }
 
@@ -32,6 +33,8 @@ Body::Body(dim3float com, float mass)
 {
     this->mass = mass;
     centreOfMass = com;
+    force = dim3float(0, 0, 0);
+    velocity = dim3float(0, 0, 0);
 }
 
 void Body::setContainerNode(Node *node)
@@ -62,6 +65,26 @@ float Body::getMass()
 void Body::setMass(float mass)
 {
     this->mass = mass;
+}
+
+void Body::setForce(dim3float force)
+{
+    this->force = force;
+}
+
+dim3float Body::getForce()
+{
+    return force;
+}
+
+void Body::setVelocity(dim3float velocity)
+{
+    this->velocity = velocity;
+}
+
+dim3float Body::getVelocity()
+{
+    return velocity;
 }
 
 //----------------------------------------------------
@@ -239,6 +262,28 @@ void Octree::insertBody(Node *startNode, Body *newBody, float width)
     }
 }
 
+void Octree::buildOctree(array<Body, NUM_BODIES> *bodies)
+{
+    for (int i = 0; i < NUM_BODIES; i++)
+    {
+        insertBody(headNode, &((*bodies)[i]), MAX_WIDTH);
+    }
+}
+
+void Octree::freeOctree(Node *node)
+{
+    array<Node, NUMCHILDREN> *children = node->getChildren();
+    if (children != nullptr)
+    {
+        for (int i = 0; i < NUMCHILDREN; i++)
+        {
+            freeOctree(&((*children)[i]));
+            free(children);
+        }
+        //free(node);
+    }
+}
+
 void Octree::printTree(Node *root, int depth)
 {
 
@@ -249,7 +294,6 @@ void Octree::printTree(Node *root, int depth)
         for (int i = 0; i < NUMCHILDREN; i++)
         {
             cout << " " << i << ": " << ((*children)[i]).getSoleBody() << " \t\t";
-            
         }
         cout << endl;
         for (int i = 0; i < NUMCHILDREN; i++)
@@ -259,7 +303,3 @@ void Octree::printTree(Node *root, int depth)
     }
     //cout << endl;
 }
-
-
-
-

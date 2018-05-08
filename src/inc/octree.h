@@ -2,8 +2,10 @@
 #define _OCTREE_H_
 
 #define NUMCHILDREN 8
-#define NUM_BODIES 30
-#define MAX_WIDTH 524288
+#define NUM_BODIES 10000
+//#define MAX_WIDTH 65536
+#define MAX_WIDTH 8192
+#define THETA 0.6
 
 class Body;
 class Node;
@@ -30,7 +32,7 @@ struct dim3float
     return dim3float(vx, vy, vz);
   }
 
-  float operator++(void)
+  float operator$()
   {
     return x + y + z;
   }
@@ -53,12 +55,20 @@ struct dim3float
 
   dim3float operator^(const int a)
   {
-    int vx = pow(x,a);
-    int vy = pow(y,a);
-    int vz = pow(z,a);
+    float vx = pow(x, a);
+    float vy = pow(y, a);
+    float vz = pow(z, a);
     return dim3float(vx, vy, vz);
   }
-  
+
+  //Constant multiplication
+  dim3float operator|(const float a)
+  {
+    float vx = x * a;
+    float vy = y * a;
+    float vz = z * a;
+    return dim3float(vx, vy, vz);
+  }
 };
 
 typedef struct dim3float dim3float;
@@ -69,18 +79,29 @@ class Body
 {
 private:
   dim3float centreOfMass;
+  dim3float force;
+  dim3float velocity;
   float mass;
   Node *containerNode;
 
 public:
   Body();
   Body(dim3float com, float mass);
+
   void setContainerNode(Node *node);
   Node *getContainerNode();
-  dim3float getCentreOfMass();
+
   void setCentreOfMass(dim3float centre);
-  float getMass();
+  dim3float getCentreOfMass();
+
   void setMass(float mass);
+  float getMass();
+
+  void setForce(dim3float force);
+  dim3float getForce();
+
+  void setVelocity(dim3float velocity);
+  dim3float getVelocity();
 };
 
 class Node
@@ -122,7 +143,8 @@ public:
   Octree(dim3float origin, float width);
   Node *getHeadNode();
   void insertBody(Node *startPoint, Body *newBody, float width);
-  void simulate(array<Body, NUM_BODIES> *bodies);
+  void buildOctree(array<Body, NUM_BODIES> *bodies);
+  void freeOctree(Node *node);
   void printTree(Node *root, int depth);
 };
 
