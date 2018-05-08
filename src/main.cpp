@@ -2,8 +2,7 @@
 
 #include "octree.h"
 
-#define NUM_BODIES 300000
-#define MAX_WIDTH 524288
+
 
 using namespace std;
 
@@ -12,6 +11,11 @@ int main(){
     
     cout << "Width: " << MAX_WIDTH << endl;
     cout << "Bodies: " << NUM_BODIES << endl;
+
+    dim3float test = (dim3float(1,2,3) + dim3float(1,2,3)) ^ 2;
+    test ^ 2;
+    cout << test.x << ":" << test.y << ":" << test.z << endl;
+    
 
     Octree octree(dim3float(0, 0, 0), MAX_WIDTH);
     Node * headNode = octree.getHeadNode();
@@ -22,7 +26,7 @@ int main(){
         octree.insertBody(headNode,&((*bodies)[i]),MAX_WIDTH);
     }
     
-    cout << " 0: " <<octree.getHeadNode()->getSoleBody() << " " << endl;
+    //cout << " 0: " <<octree.getHeadNode()->getSoleBody() << " " << endl;
     //octree.printTree(octree.getHeadNode(), 1);
     return 0;
 }

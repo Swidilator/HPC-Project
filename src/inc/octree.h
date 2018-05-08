@@ -2,6 +2,8 @@
 #define _OCTREE_H_
 
 #define NUMCHILDREN 8
+#define NUM_BODIES 30
+#define MAX_WIDTH 524288
 
 class Body;
 class Node;
@@ -9,6 +11,7 @@ class Octree;
 
 #include <iostream>
 #include <array>
+#include <cmath>
 
 using namespace std;
 
@@ -18,9 +21,48 @@ struct dim3float
 {
   float x, y, z;
   dim3float(float vx = 0, float vy = 0, float vz = 0) : x(vx), y(vy), z(vz) {}
+
+  dim3float operator+(const dim3float &a)
+  {
+    float vx = x + a.x;
+    float vy = y + a.y;
+    float vz = z + a.z;
+    return dim3float(vx, vy, vz);
+  }
+
+  float operator++(void)
+  {
+    return x + y + z;
+  }
+
+  dim3float operator-(const dim3float &a)
+  {
+    float vx = x - a.x;
+    float vy = y - a.y;
+    float vz = z - a.z;
+    return dim3float(vx, vy, vz);
+  }
+
+  dim3float operator*(const dim3float &a)
+  {
+    float vx = x * a.x;
+    float vy = y * a.y;
+    float vz = z * a.z;
+    return dim3float(vx, vy, vz);
+  }
+
+  dim3float operator^(const int a)
+  {
+    int vx = pow(x,a);
+    int vy = pow(y,a);
+    int vz = pow(z,a);
+    return dim3float(vx, vy, vz);
+  }
+  
 };
 
 typedef struct dim3float dim3float;
+
 //----
 
 class Body
@@ -75,14 +117,12 @@ class Octree
 {
 private:
   Node *headNode;
-  //dim3float octreeOrigin;
-  //float width;
 
 public:
   Octree(dim3float origin, float width);
   Node *getHeadNode();
   void insertBody(Node *startPoint, Body *newBody, float width);
-  void simulate(array<Body, NUM_BODIES>* bodies);
+  void simulate(array<Body, NUM_BODIES> *bodies);
   void printTree(Node *root, int depth);
 };
 

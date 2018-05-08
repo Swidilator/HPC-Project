@@ -110,12 +110,6 @@ void Node::setSoleBody(Body *body)
         containsBody = true;
         body->setContainerNode(this);
     }
-    /*
-    else
-    {
-        //containsBody = false;
-    }
-    */
 }
 
 Body *Node::getSoleBody()
@@ -255,14 +249,17 @@ void Octree::printTree(Node *root, int depth)
         for (int i = 0; i < NUMCHILDREN; i++)
         {
             cout << " " << i << ": " << ((*children)[i]).getSoleBody() << " \t\t";
-            //printTree(&((children)[i]));
+            
         }
         cout << endl;
         for (int i = 0; i < NUMCHILDREN; i++)
         {
-            //cout << &((children)[i]) << " ";
             printTree(&((*children)[i]), depth + 1);
         }
     }
     //cout << endl;
 }
+
+
+
+
