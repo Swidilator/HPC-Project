@@ -1,0 +1,203 @@
+% Richard Klein 2017
+
+% Use texlive-full
+% sudo apt install python-pygments
+
+% Include Packages
+%\usepackage[a4paper,inner=3.5cm,outer=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}  % Set page margins
+\usepackage{fullpage}
+
+%\usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{float}                  % Allows 'Here and Only Here' [H] for Floats
+\usepackage{url}                    % \url{} command
+\usepackage{times}                  % Set font to Times
+\usepackage{graphicx}               % \includegraphics
+%\usepackage{subfigure}             % Allow subfigures
+\usepackage{amsmath}				% Useful symbols etc
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{multicol}				% Table Stuff
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{caption}				% Figure/Table Caption stuff
+\usepackage{pdfpages}				% Lets you include pdf documents
+
+% Referencing
+\usepackage{varioref}               % Provides \Vref and \vref to indicate where a reference is.
+\usepackage[bookmarks=true,bookmarksopen=true]{hyperref}               % Hyperlinks references
+\usepackage{cleveref}               % Provides \Cref, \cref, \Vref, \vref to include the type of reference: fig/eqn/tbl
+
+\hypersetup{
+  colorlinks   = true,              %Colours links instead of ugly boxes
+  urlcolor     = blue,              %Colour for external hyperlinks
+  linkcolor    = blue,              %Colour of internal links
+  citecolor    = blue,                %Colour of citations
+  pdftitle={PDF TITLE},%<!CHANGE!
+  pdfsubject={PDF SUBJECT},%<!CHANGE!
+  pdfauthor={AUTHORE NAME},%<!CHANGE!
+}
+
+%%% CleverRef Setups %%%
+\crefname{table}{table}{tables}	
+\Crefname{table}{Table}{Tables}
+
+\crefname{figure}{figure}{figures}
+\Crefname{figure}{Figure}{Figures}
+
+\crefname{equation}{equation}{equations}
+\Crefname{equation}{Equation}{Equations}
+
+% Theorems
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+% Line Spacing
+%\usepackage{setspace}
+%\linespread{2}
+
+% Spaces beteen paragraphs
+%\newcommand{\setparskip}{\setlength{\parskip}{10pt plus10pt minus4pt}}
+%\newcommand{\unsetparskip}{\setlength{\parskip}{0pt plus0pt minus0pt}}
+
+%\newenvironment{proof}[1][Proof]{\begin{trivlist}
+%\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+%\newenvironment{definition}[1][Definition]{\begin{trivlist}
+%\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+%\newenvironment{example}[1][Example]{\begin{trivlist}
+%\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+%\newenvironment{remark}[1][Remark]{\begin{trivlist}
+%\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+%
+%\newcommand{\qed}{\nobreak \ifvmode \relax \else
+%      \ifdim\lastskip<1.5em \hskip-\lastskip
+%      \hskip1.5em plus0em minus0.5em \fi \nobreak
+%      \vrule height0.75em width0.5em depth0.25em\fi}
+
+%\usepackage{eso-pic}
+
+%\usepackage[pdftex,colorlinks = true,linkcolor = blue,urlcolor = blue, citecolor = blue]{hyperref}
+
+\usepackage[sort]{natbib} \input{natbib-add}
+\bibliographystyle{named-wits}
+\bibpunct{(}{)}{;}{a}{}{}  % to get correct punctuation for bibliography
+\setlength{\skip\footins}{1.5cm}
+\newcommand{\citets}[1]{\citeauthor{#1}'s \citeyearpar{#1}}
+
+\renewcommand\bibname{References}  % change title of references section
+
+%\newcommand{\myquote}[2]{\begin{center}\fbox{\begin{minipage}{.95\linewidth}#1\hfill #2\end{minipage}}\end{center}}
+
+%
+%\makeatletter\newenvironment{graybox}{%
+%   \begin{lrbox}{\@tempboxa}\begin{minipage}{0.8\linewidth}}{\end{minipage}\end{lrbox}%
+%   \colorbox{lightgray}{\usebox{\@tempboxa}}
+%}\makeatother
+%
+%\makeatletter\newenvironment{mygraybox}{%
+%   \begin{lrbox}{\@tempboxa}\begin{minipage}{0.95\linewidth}}{\end{minipage}\end{lrbox}%
+%   \colorbox{lightgray}{\usebox{\@tempboxa}}
+%}\makeatother
+
+
+\usepackage{color}
+\definecolor{quotationcolour}{gray}{0.8}
+\definecolor{quotationmarkcolour}{gray}{0.4}
+\definecolor{lightgray}{gray}{.8}
+
+% Double-line for start and end of epigraph.
+\newcommand{\epiline}{\hrule \vskip -.2em \hrule}
+% Massively humongous opening quotation mark.
+\newcommand{\hugequote}{%
+  \fontsize{42}{48}\selectfont \color{quotationmarkcolour} \textbf{``}
+  \vskip -.5em
+}
+
+\newcommand*{\signed}[1]{%
+  \unskip\hspace*{1em plus 1fill}%
+  \nolinebreak[3]\hspace*{\fill}\mbox{#1}
+}
+
+% Beautify quotations.
+\newcommand{\epigraph}[2]{%
+  %\bigskip
+  \begin{center}
+  \colorbox{quotationcolour}{%
+    \parbox{.90\textwidth}{%
+    \epiline \vskip 1em {\hugequote} \vskip -.5em
+    \parindent 2.2em
+    #1\signed{#2}\\
+    \epiline
+    }
+  }
+  \end{center}
+  %\bigskip
+}
+
+\usepackage{environ}
+\NewEnviron{myquote}[1]{\epigraph{\BODY}{#1}}
+\usepackage{lettrine}
+
+\usepackage{listing}
+\usepackage{minted}
+
+\newcommand{\inputcode}[1]{\inputminted[bgcolor=white,linenos=false,fontfamily=courier,frame=single]{c}{#1}}
+\newcommand{\ccode}{\mint[mathescape,bgcolor=white,linenos=false,fontfamily=courier,frame=none]{c}}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\newmintedfile[makecode]{make}{tabsize=4, fontsize=\small, frame=lines, linenos, framesep=\fboxsep, bgcolor=codebg, rulecolor=\color{gray!40},samepage=true}
+\newmintedfile[cppcode]{cpp}{tabsize=4, fontsize=\small, frame=lines, mathescape, linenos, mathescape, framesep=\fboxsep, bgcolor=codebg, rulecolor=\color{gray!40},samepage=false}
+\newminted[cpp]{cpp}{tabsize=4, fontsize=\small, frame=lines, linenos, mathescape, framesep=\fboxsep, bgcolor=codebg, rulecolor=\color{gray!40},samepage=false}
+\newminted[bash]{bash}{tabsize=4, fontsize=\small, frame=lines, linenos=false, mathescape, framesep=\fboxsep, bgcolor=codebg, rulecolor=\color{gray!40},samepage=true}
+\newminted[sql]{sql}{tabsize=4, fontsize=\small, frame=lines, linenos=false, mathescape, framesep=\fboxsep, bgcolor=codebg, rulecolor=\color{gray!40},samepage=true}
+
+\usepackage{mathtools}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{decorations.text}
+\usetikzlibrary{decorations.pathmorphing}
+\makeatletter
+\tikzset{
+	block filldraw/.style={% only the fill and draw styles
+		draw, fill=none},
+	block rect/.style={% fill, draw + rectangle (without measurements)
+		block filldraw, rectangle},
+	block/.style={% fill, draw, rectangle + minimum measurements
+		block rect, minimum height=0.8cm, minimum width=6em},
+	from/.style args={#1 to #2}{% without transformations
+		above right={0cm of #1},% needs positioning library
+		/utils/exec=\pgfpointdiff
+		{\tikz@scan@one@point\pgfutil@firstofone(#1)\relax}
+		{\tikz@scan@one@point\pgfutil@firstofone(#2)\relax},
+		minimum width/.expanded=\the\pgf@x,
+		minimum height/.expanded=\the\pgf@y}}
+\makeatother
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[chapter] % reset theorem numbering for each chapter
+
+\theoremstyle{definition}
+\newtheorem{layer}[thm]{Layer} 
+
+
+%\usepackage{todonotes}
+\setlength{\marginparwidth}{2cm}
+
+\usepackage{nomencl}
+\makenomenclature
+
+\usepackage{lscape}
+\usepackage{pdflscape}
+\usepackage{afterpage}
+\usepackage{capt-of}% or use the larger `caption` package
+
+% Blank line between paragraphs, but keep the paragraph indent
+\edef\restoreparindent{\parindent=\the\parindent\relax}
+\usepackage{parskip}
+\restoreparindent
+
+\usepackage{adjustbox}
+\usepackage{longtable}

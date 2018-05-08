@@ -1,0 +1,264 @@
+\documentclass[a4paper,twoside,11pt]{report}
+% rubber: setlist arguments --shell-escape -synctex=1
+
+\input{preamble.tex}
+%\raggedbottom
+% Title Page
+\setlength{\parskip}{4mm plus2mm minus1mm}
+
+\setlength{\parindent}{0cm}
+
+\usepackage{multirow}
+\usepackage{cleveref}
+\usepackage{float}
+
+% Font
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+	\onecolumn
+	\thispagestyle{empty}
+	
+	\pagenumbering{roman}
+	
+	\addcontentsline{toc}{chapter}{Preface}
+	\ 
+	\begin{center}
+		
+		{
+			\Large \bf \sc Assignment 2\\
+			\large High Performance Computing\\[20pt]
+			\large School of Computer Science and Applied Mathematics\\
+			\large University of the Witwatersrand\\[20pt]
+			\normalsize
+			Kyle Weiher\\
+			1116087\\[20pt]
+			%Supervised by\\Dr Richard Klein\\[10pt]
+			\today
+		}
+		%\end{center}
+		\vfill
+		\includegraphics[width=4cm]{images/wits}
+		\vfill
+		%\begin{center}
+		
+		%{\scriptsize \input{version.tex}} % Add or remove for GIT versioning
+		\vfill
+		%A Thesis submitted to the Faculty of Science, University of the Witwatersrand, Johannesburg, in fulfilment of the requirements for the degree of Doctor of Philosophy\\[10pt]
+		%\small{Ethics Clearance Number: H14/03/06}\\
+	\end{center}
+
+\newpage
+\thispagestyle{plain}
+
+%\phantomsection
+\setcounter{page}{2}
+\setcounter{chapter}{1}
+%\addcontentsline{toc}{section}{Table of Contents}
+\tableofcontents
+
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+In this report I document the following with respect to the 5 models:
+\begin{itemize}
+	\item Design Choices - how each model is designed with regards to the device it is running on, as well as the memory model used in the computation.
+	\item Performance comparison - how well the different models performed as well as discussion as to what might have lead to these results.
+	\item GPU Memory Discussions - how each memory model generally works and some discussion of how each memory model influenced the results
+\end{itemize}
+
+
+The system used to run the tests has the following specs:
+\begin{itemize}
+	\item OS: 		Manjaro Linux x86\_64 
+	\item Kernel: 	4.14.34-1-MANJARO 
+	\item Memory: 	15966MiB
+	\item GPU:		NVIDIA GeForce GTX 960M
+	\item CPU: 		Intel i7-4720HQ (8) @ 3.600GHz
+\end{itemize}
+
+
+\chapter*{Design Choices}
+\setcounter{chapter}{2}
+\setcounter{section}{0}
+\addcontentsline{toc}{chapter}{Design Choices}
+\addcontentsline{toc}{section}{Introduction}
+When writing my code, I decided that for each test for a particular memory model I would test that memory model and not include aspects from other memory models as much as is possible. As such, here are the details of each memory model test:
+
+\section{Serial CPU Test}
+For this test the GPU was not involved at all: there was no interaction with the GPU, no GPU specific code was included in the time section of the computation. This test was run in serial, and as such is predicted to have the longest run time out of all of the models, and increasingly so as the size of the image and filter increases.
+
+\section{Global GPU Memory Test}
+This test involves copying the image data and filter to the GPU global memory, and assigning one thread per output pixel to calculate it's respective output value. For example, a 512 x 512 pixel image will be assigned 262144 threads for the computation of the output image. This is the method used by all following memory models as they are all simply modifications on this design. The output image is then copied from GPU memory to host memory.
+
+\section{Shared GPU Memory Test}
+This test makes use of shared memory in an attempt to speed up computation and reduce unnecessary reads to global memory. As with the global memory implementation, the image and filter data are first copied to the GPU global memory. Then after the launch of the kernel, a block of shared memory the same size as the size of each thread block is created, in order to store the majority of the data that will be required by the threads in that particular block. Furthermore, a block of shared memory the size of the filter is also allocated.
+
+Each thread in a block will read in a pixel value from the image in global memory, and then store it in it's respective place in this block's shared memory. The same happens for the filter, only some of the threads do not take part as the filter is generally smaller than a block.
+
+From there, each thread will perform the convolution in the same manner as in the global memory implementation, however, if the memory a thread is requesting can be found in shared memory, it will request that memory, otherwise, it will simply request it from global memory. This check is done through bounds checking as all sizes of blocks and thread positions are known.
+
+\section{Constant GPU Memory Test}
+This test makes one simple change to the global memory model explained above: the filter, instead of being stored in global memory, is now loaded into the device's constant memory. As the values in the filter are referenced constantly, there is a chance that this improves performance as the constant memory has exceptionally quick read times.
+
+\section{Texture GPU Memory Test}
+This test makes the biggest change compared to the way the other memory model tests are performed. Instead of copying the image data to device memory and referencing it directly from device memory, the image is stored in a cudaArray and copied to the device, and then bound to texture memory. Then, inside the kernel, the references to the image reference the texture memory instead of global memory.
+
+\chapter*{Performance Comparison}
+\setcounter{chapter}{3}
+\setcounter{section}{0}
+\addcontentsline{toc}{chapter}{Performance Comparison}
+
+\addcontentsline{toc}{section}{Introduction}
+The performance comparisons are performed using an averaging filter, and besides the fact that it really does not matter what filter is used, only the size of the filter, it scales easily and allows one to check if the convolution works correctly. Thus, tests will be run with a 3x3 filter, and an 11x11 filter. Furthermore, two image sizes are tested, 512 x 512, and 3072 x 2048.
+
+\section{Performance Using Different Sized Inputs and filters, and GPU Overhead Discussion}
+This metric was tested by running the different memory models one after each other to gather all information needed to complete an entire table, as seen below. This was done four times, as explained above, with 2 different image sizes, and two different filter sizes. During the run, between each memory model test, the GPU memory is freed and the GPU is reset using the \textit{cudaDeviceReset()} function.
+
+\subsection{Kernel Time vs Overhead Time}
+Immediately we can see that for a small image with a small filter, as shown in \cref{lena3}, the overhead time for any of the GPU-based models is around twice that of the time required to process the image with a serial kernel on the CPU. In this case, using a GPU-based model for a small, single image and small filter is not worth it. 
+
+However, looking at \cref{lena11}, we can see that the increased filter size greatly increases the kernel time of all models. However, something that is not increased by the same ratio is the overhead time. Since the serial model's time is greatly increased, the GPU-based models are finally viable as their combined runtimes are now nearly a tenth of the time the serial model takes to complete it's computation.
+
+Tables \ref{im3} and \ref{im11} both show that at this point, the increased image size alone is enough to make the serial model drastically slower than the GPU-based models, even though all overheads increased slightly, and the computation times for the GPU-based models similarly increased. As we can see, the overhead of the GPU-based models may start out high compared to the runtime of the serial model in \cref{lena3}, but it does not scale at nearly the same rate as the kernel time of the serial model when the image or filter size is increased.
+
+\subsection{GPU-based Model Runtime Comparison}
+The results shown in all tables follow the general trend as to which models perform better than others in terms of overhead and kernel time. The global memory based model is far quicker than the serial model, but it is slower than the constant and texture memory models, since the constant memory model saves time by referencing constant memory when retrieving filter values, and the texture memory model uses a memory structure specifically designed to reference data with spacial locality to other required data, and as such the texture memory model is the fastest kernel time in all of the tests.
+
+The interesting thing about the shared memory model is that it performs worse than even that of the global memory model. This I believe is due to the kernel needing the extra time and a \textit{\_\_syncthreads()} call in order to place the required data in shared memory. Since the GPU does not have as many cores as there are threads running for a particular image, instead of simply exploiting the memory coalescing that I believe the other models do when accessing global memory, the GPU needs to copy that data into a new location in memory, and then work from that. The memory coalescing that is used in the other models significantly speeds up the global memory accesses, allowing them to remain competitive, while the shared memory model falls behind. If the data was more spread out over the memory of the GPU, instead of all being in one place, there is a chance that the shared memory would be a better contender.
+
+The texture memory model has a larger overhead time than that of the other models, most probably due to the more complex structure that the texture memory is stored in, and as such may require more time to preprocess and copy the data to the GPU before the kernel can start using it. This makes it overall slower in combined runtime than many of the other models, however the shared memory overhead seems to be far higher for the large image and large filter, which is not represented in any other table, and as such this is the exception case where the texture runtime is faster.
+
+Note: Later on I found that the \textit{cudaDeviceSyncronyze()} call for the warmup routine for the GPU was not included in the timing of the warmup. The warmup time is not included in either the kernel time nor the overhead time, and as such the this API call should have been excluded from the overhead timing. This, after investigation, is the reason why the shared memory model's overhead time is greater than the other models. This issue affects all models however, so it does show us that these API calls can be far more expensive for kernels that use shared memory than those that don't.
+
+
+\begin{table}[H]
+	\centering
+	\caption{\textit{512} x \textit{512} image with \textit{3} x \textit{3} filter}
+	\label{lena3}
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		&               & \multicolumn{5}{c|}{Memory Model}             \\ \hline
+		&               & Serial & Global & Shared & Constant & Texture \\ \hline
+		\multirow{2}{*}{Time(ms)} & Kernel Time   & 27.306 & 0.131  & 0.227  & 0.064    & 0.009   \\ \cline{2-7} 
+		& Overhead Time & N/A    & 54.293 & 52.998 & 52.741   & 55.57   \\ \hline
+	\end{tabular}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{\textit{512} x \textit{512} image with \textit{11} x \textit{11} filter}
+	\label{lena11}
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		&               & \multicolumn{5}{c|}{Memory Model}             \\ \hline
+		&               & Serial & Global & Shared & Constant & Texture \\ \hline
+		\multirow{2}{*}{Time(ms)} & Kernel Time   & 340.890 & 1.330  & 3.378  & 0.958    & 0.008   \\ \cline{2-7} 
+		& Overhead Time & N/A    & 74.151 & 68.681 & 69.424   & 69.089   \\ \hline
+	\end{tabular}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{\textit{3072} x \textit{2048} image with \textit{3} x \textit{3} filter}
+	\label{im3}
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		&               & \multicolumn{5}{c|}{Memory Model}             \\ \hline
+		&               & Serial & Global & Shared & Constant & Texture \\ \hline
+		\multirow{2}{*}{Time(ms)} & Kernel Time   & 627.232 & 2.825  & 5.111  & 1.529    & 0.013   \\ \cline{2-7} 
+		& Overhead Time & N/A    & 73.833 & 70.761 & 63.034   & 81.148   \\ \hline
+	\end{tabular}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{\textit{3072} x \textit{2048} image with \textit{11} x \textit{11} filter}
+	\label{im11}
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		&               & \multicolumn{5}{c|}{Memory Model}             \\ \hline
+		&               & Serial & Global & Shared & Constant & Texture \\ \hline
+		\multirow{2}{*}{Time(ms)} & Kernel Time   & 8291.944 & 29.629  & 79.619  & 20.252    & 0.022   \\ \cline{2-7} 
+		& Overhead Time & N/A    & 104.688 & 143.552 & 98.055   & 150.045   \\ \hline
+	\end{tabular}
+\end{table}
+
+
+
+\section{Floating Point Operations per Kernel}
+Taking only addition and multiplication of floating point numbers as contributing to this metric, it can be seen that the only operations of this nature are the multiplication of the image value with the filter value, and the addition of this new value to the cumulative sum that results in the output of the convolution. Since these operations are identical in all kernels used, even if the sources of these values are not the same, it can be seen that there are 2 operations per filter element, and then \textit{m} x \textit{m} values in a filter, we arrive at a total of 2(\textit{m} x \textit{m}) floating point operations per kernel.
+
+
+\section{Global Memory Reads per Kernel}
+% Global: 13 - 18
+% Shared: 5 - 11
+% Constant: 4 - 9
+% Texture: 9
+
+The global memory kernel will, as it's name suggests, make the most global memory reads. This model will read global memory every time an image or filter value is required. As such, similarly to the floating point operations per kernel, 2(\textit{m} x \textit{m}) global memory reads will be made on average, with a smaller amount made when on the edges of the image.
+
+The shared memory kernel will make far less reads, since each kernel will only read 1 value from global memory to fill the shared memory block, and possibly 1 read to fill the shared memory filter for each block. The threads around the edges of the block will need to reference global memory more as the values not found within the shared memory block are read from global memory instead. This can add up to $\approx$(\textit{3/4} x \textit{m} x \textit{m}) reads for a thread that is located on the exact corner for a block of shared memory, but less if it is any further away from the corner, and none when appropriately inside the shared memory block.
+
+The constant memory kernel essentially does half the reads from global memory that the global memory kernel does, as it does not need to read global memory to get the values of the filter. Therefore, it only does (\textit{m} x \textit{m}) global memory reads at most, and if on the edge or corner of the image, it will do even less.
+
+The texture memory kernel performs almost the same amount of global memory reads as the constant kernel, only in the exact opposite way. It reads the filter values from global memory, not the image values. Thus it is only (\textit{m} x \textit{m}) global memory reads.
+
+All of the above is done once for each pixel in the image, as one thread is assigned to each pixel.
+
+\section{Measured Floating-Point Computation Rate for Kernels}
+Since each kernel performs the same amount of floating point operations, simply taking the kernel time for each model and converting it to operations per second is a simple task. As we can see in \cref{flops}, the serial model's computation rate effectively remains constant, as it is a single CPU core running all computations at the maximum rate of that particular CPU core. The other models show more variation, however, and this may be due to the fact that when running the models, the results always varied due to the sensitivity of the timing, as the times are small and a small delay may make a great difference. The texture memory model on the other hand shows a great increase in performance as the image and filer size increase.
+
+Similar to my discussion of the kernel time for each model with regards to filter and image size, global memory is the second worst, with only shared memory being worse. Constant memory is able to increase it's performance by saving time on global memory reads, and thus gains between 50\% and 100\% performance compared to global memory are achieved. The shared memory model is essentially half as efficient compared to global memory, whereas the texture memory model performs between 10 and 1000 times as many computations per second as the image and filter size increases compared to the global memory model.
+
+
+\begin{table}[H]
+	\centering
+	\caption{FLOPs for each Memory Model}
+	\label{flops}
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		&                                                                          & \multicolumn{5}{c|}{Memory Model}                      \\ \hline
+		&                                                                          & Serial  & Global   & Shared   & Constant & Texture     \\ \hline
+		\multirow{4}{*}{FLOPs} & \begin{tabular}[c]{@{}c@{}}512 x 512 image\\ 3 x 3 filter\end{tabular}     & 0.173e9 & 36.019e9 & 20.787e9 & 73.728e9 & 589.824e9   \\ \cline{2-7} 
+		& \begin{tabular}[c]{@{}c@{}}512 x 512 image\\ 11 x 11 filter\end{tabular}   & 0.186e9 & 47.698e9 & 18.780e9 & 66.220e9 & 7929.856e9  \\ \cline{2-7} 
+		& \begin{tabular}[c]{@{}c@{}}3072 x 2048 image\\ 3 x 3 filter\end{tabular}   & 0.181e9 & 40.087e9 & 22.157e9 & 74.066e9 & 8711.247e9  \\ \cline{2-7} 
+		& \begin{tabular}[c]{@{}c@{}}3072 x 2048 image\\ 11 x 11 filter\end{tabular} & 0.184e9 & 51.387e9 & 19.123e9 & 75.179e9 & 69206.016e9 \\ \hline
+	\end{tabular}
+\end{table}
+
+
+\chapter*{GPU Memory Discussion}
+\setcounter{chapter}{4}
+\setcounter{section}{0}
+\addcontentsline{toc}{chapter}{GPU Memory Discussion}
+\addcontentsline{toc}{section}{Introduction}
+What follows is a general discussion about the findings of the different memory models, and other aspects of the memory models in general. 
+
+\section{Global GPU Memory}
+Global memory is essentially the same as the memory that CPU's use, except the memory is on the GPU itself. It can store any type of data, and is referenced as normal variables and data structures are referenced on the CPU. The memory is technically the slowest memory to access, however memory coalescing can drastically increase read speeds if your kernel is designed to take advantage of it.
+
+The global memory variant of the kernel was predicted to be the slowest in terms of performance, however due to the spacial locality of the memory accesses when performing the convolution operation it managed to remain competitive. It provides significantly faster runtimes than the serial model in all cases, however the overhead of using the GPU must be taken into account as for smaller images and filter sizes the serial implementation can outperform the GPU implementation simply due to the overhead costs of using the GPU.
+
+\section{Shared GPU Memory}
+Shared memory is a special type of memory that is shared by all threads in a warp. This means that any changes to this memory by thread will also affect the data structure in the other thread's respective kernels. This memory is significantly faster in terms of read access than accessing global memory, and when copying the memory into shared memory from global memory often each thread will only contribute 1 value towards the entire shared memory block to collaboratively fill the required memory.
+
+While this memory model definitely has it's advantages and is useful in some situations, the fact that the memory needs to be copied from global memory to shared memory before it can be used means that it can introduce some overhead in your kernel. Due to the fact that access to global memory can be coalesced and the image is stored as a continuous block of data, the global memory model is able to outperform the shared memory model. If it wasn't for the coalesced memory access, the global memory model would likely perform far worse, and the shared memory model would be useful in this situation.
+
+\section{Constant GPU Memory}
+Constant memory is a small section of read only memory that has an exceptionally quick read time. As it is read only, the kernel is not able to change the memory at run time, and so this may limit potential applications of this memory model. It is also very small, and so the entire image cannot be stored inside constant memory for example.
+
+In the model I used, only the filter is stored in constant memory, with the image values being read from global memory in the same way it is done in the global memory model. The use of constant memory for the filter results in a noticeable speed increase for the kernel, however this can possibly be combined with other methods to further increase performance.
+
+\section{Texture GPU Memory}
+Texture memory is a unique type of read only cache that exploits spacial locality to allow reading of data at extreme speeds. Generally, data such as textures and images are almost always accessed in clusters, and so when accessing clusters of spatially local data at the same time the performance improvement is tremendous.
+
+The model I used places the image into texture memory, however the filter is still located in global memory, and as a further improvement the filter could also be placed into texture memory. The overhead of placing the image into texture memory appears to be higher than just keeping it global memory, however the runtime using texture memory is extremely low. The performance also seems to increase as the problem size increases, as seen in \cref{flops}.
+
+
+\end{document}          

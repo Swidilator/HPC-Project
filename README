@@ -1,0 +1,16 @@
+All global cuda helper headers go in
+	./inc
+
+All user header files go in
+	./src/inc
+
+All source files go in
+	./src
+
+///////////////
+
+To make, simply type
+	make
+
+To build your latex document and copy the result to ./report.pdf, simply type
+	make -B latex
